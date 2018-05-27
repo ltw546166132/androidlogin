@@ -4,12 +4,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.storage.OnObbStateChangeListener;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -43,39 +45,9 @@ public class MainActivity extends Activity {private final int RETURN_VALUE = 0;
 		et_name.setText("abc啦啦啦");
 		et_password = (EditText) findViewById(R.id.password);
 		Button bt_login = (Button) findViewById(R.id.login);
-		bt_login.setOnClickListener(new OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				new Thread(new Runnable() {
-					
-					@Override
-					public void run() {
-						
-						try {
-							String username = et_name.getText().toString();
-							String password = et_password.getText().toString();
-							String urlpath = path+"?username="+URLEncoder.encode(username, "utf-8")+"&password="+URLEncoder.encode(password, "utf-8");
-							Log.w("urlpath", urlpath);
-							URL url = new URL(urlpath);
-							HttpURLConnection openConnection = (HttpURLConnection) url.openConnection();
-							openConnection.setRequestMethod("GET");
-							openConnection.setConnectTimeout(5*1000);
-							if(openConnection.getResponseCode()==200) {
-								InputStream inputStream = openConnection.getInputStream();
-								String returnvalue = HttpUtils.getValue(inputStream);
-								Message msg = Message.obtain();
-								msg.obj = returnvalue;
-								msg.what = RETURN_VALUE;
-								handler.sendMessage(msg);
-							}
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}).start();
-			}
-		});
+		Button bt_postlogin = (Button) findViewById(R.id.loginpost);
+		bt_login.setOnClickListener(new BtnOnclicklistener());
+		bt_postlogin.setOnClickListener(new BtnOnclicklistener());
 	}
 
 	static class HttpUtils{
@@ -97,4 +69,72 @@ public class MainActivity extends Activity {private final int RETURN_VALUE = 0;
 			return returnValue;
 		}
 	}
+	
+	class BtnOnclicklistener implements OnClickListener{
+
+		@Override
+		public void onClick(final View v) {
+			// TODO Auto-generated method stub
+				new Thread(new Runnable() {
+					
+					@Override
+					public void run() {
+						if(v.getId()==R.id.login) {
+							try {
+								String username = et_name.getText().toString();
+								String password = et_password.getText().toString();
+								String urlpath = path+"?username="+URLEncoder.encode(username, "utf-8")+"&password="+URLEncoder.encode(password, "utf-8");
+								Log.w("urlpath", urlpath);
+								URL url = new URL(urlpath);
+								HttpURLConnection openConnection = (HttpURLConnection) url.openConnection();
+								openConnection.setRequestMethod("GET");
+								openConnection.setConnectTimeout(5*1000);
+								if(openConnection.getResponseCode()==200) {
+									InputStream inputStream = openConnection.getInputStream();
+									String returnvalue = HttpUtils.getValue(inputStream);
+									Message msg = Message.obtain();
+									msg.obj = returnvalue;
+									msg.what = RETURN_VALUE;
+									handler.sendMessage(msg);
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}else if(v.getId()==R.id.loginpost) {
+							try {
+								String username = et_name.getText().toString();
+								String password = et_password.getText().toString();
+								String params = "username="+URLEncoder.encode(username, "utf-8")+"&password="+URLEncoder.encode(password, "utf-8");
+								URL url = new URL(path);
+								HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+								connection.setRequestMethod("POST");
+								connection.setConnectTimeout(10000);
+								//向服务器发送要传递的数据类型
+								connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+								//向服务器发送要传递的数据长度
+								connection.setRequestProperty("Content-Length", String.valueOf(params.length()));
+								connection.setDoOutput(true);
+								//通过流把请求体写到服务器
+								connection.getOutputStream().write(params.getBytes());
+								if(connection.getResponseCode()==200) {
+									InputStream inputStream = connection.getInputStream();
+									String value = HttpUtils.getValue(inputStream);
+									Message message = Message.obtain();
+									message.obj = value;
+									message.what = RETURN_VALUE;
+									handler.sendMessage(message);
+								}
+									
+							} catch (Exception e) {
+								// TODO: handle exception
+							}
+							
+						}
+						
+					}
+				}).start();
+			}
+		
+		}
+	
 }
